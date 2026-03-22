@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/enrollments")
-@PreAuthorize("hasRole('STUDENT')")
+@PreAuthorize("hasAnyRole('STUDENT','ADMIN')")
 public class EnrollmentController {
 
     private static final Logger log = LoggerFactory.getLogger(EnrollmentController.class);

@@ -14,11 +14,15 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class EnrollmentServiceImpl implements EnrollmentService {
+
+    private static final Logger log = LoggerFactory.getLogger(EnrollmentServiceImpl.class);
 
     private static final int MAX_ENROLLMENTS = 3;
     private static final int MONTHS_TO_COMPLETE = 6;
@@ -42,10 +46,12 @@ public class EnrollmentServiceImpl implements EnrollmentService {
 
         long currentEnrollments = enrollmentRepository.countByStudentId(student.getId());
         if (currentEnrollments >= MAX_ENROLLMENTS) {
+            log.info("Enrollment denied for student {}: max enrollments reached ({})", studentId, currentEnrollments);
             throw new BusinessException("Maximum of " + MAX_ENROLLMENTS + " active enrollments reached");
         }
 
         if (enrollmentRepository.existsByStudentIdAndCourseId(student.getId(), courseId)) {
+            log.info("Enrollment denied for student {}: already enrolled in course {}", studentId, courseId);
             throw new BusinessException("Student already enrolled in this course");
         }
 
@@ -63,6 +69,7 @@ public class EnrollmentServiceImpl implements EnrollmentService {
                 .build();
 
         Enrollment saved = enrollmentRepository.save(enrollment);
+        log.info("Enrollment created: student {} -> course {} (enrollment {})", studentId, courseId, saved.getId());
         return toResponse(saved);
     }
 
