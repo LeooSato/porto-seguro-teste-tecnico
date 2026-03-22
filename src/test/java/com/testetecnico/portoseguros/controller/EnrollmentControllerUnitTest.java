@@ -6,7 +6,6 @@ import static org.mockito.Mockito.when;
 
 import com.testetecnico.portoseguros.dto.EnrollmentRequestDto;
 import com.testetecnico.portoseguros.dto.EnrollmentResponseDto;
-import com.testetecnico.portoseguros.entity.Student;
 import com.testetecnico.portoseguros.service.EnrollmentService;
 import java.time.LocalDate;
 import java.util.List;
@@ -18,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 
 @ExtendWith(MockitoExtension.class)
 class EnrollmentControllerUnitTest {
@@ -30,8 +30,7 @@ class EnrollmentControllerUnitTest {
 
     @Test
     void enrollShouldReturnCreated() {
-        Student student = new Student();
-        student.setId(UUID.randomUUID());
+        UUID studentId = UUID.randomUUID();
         UUID courseId = UUID.randomUUID();
 
         EnrollmentRequestDto request = new EnrollmentRequestDto(courseId);
@@ -42,9 +41,11 @@ class EnrollmentControllerUnitTest {
                 LocalDate.of(2026, 1, 1),
                 LocalDate.of(2026, 7, 1)
         );
-        when(enrollmentService.enrollStudent(courseId, student)).thenReturn(serviceResponse);
+        Authentication authentication = org.mockito.Mockito.mock(Authentication.class);
+        when(authentication.getName()).thenReturn(studentId.toString());
+        when(enrollmentService.enroll(studentId, courseId)).thenReturn(serviceResponse);
 
-        ResponseEntity<EnrollmentResponseDto> response = enrollmentController.enroll(request, student);
+        ResponseEntity<EnrollmentResponseDto> response = enrollmentController.enroll(request, authentication);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(response.getBody()).isEqualTo(serviceResponse);
@@ -52,8 +53,7 @@ class EnrollmentControllerUnitTest {
 
     @Test
     void listMyEnrollmentsShouldReturnOk() {
-        Student student = new Student();
-        student.setId(UUID.randomUUID());
+        UUID studentId = UUID.randomUUID();
         List<EnrollmentResponseDto> serviceResponse = List.of(new EnrollmentResponseDto(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
@@ -61,11 +61,13 @@ class EnrollmentControllerUnitTest {
                 LocalDate.of(2026, 1, 1),
                 LocalDate.of(2026, 7, 1)
         ));
-        when(enrollmentService.listMyEnrollments(student)).thenReturn(serviceResponse);
+        Authentication authentication = org.mockito.Mockito.mock(Authentication.class);
+        when(authentication.getName()).thenReturn(studentId.toString());
+        when(enrollmentService.listMyEnrollments(studentId)).thenReturn(serviceResponse);
 
-        ResponseEntity<List<EnrollmentResponseDto>> response = enrollmentController.listMyEnrollments(student);
+        ResponseEntity<List<EnrollmentResponseDto>> response = enrollmentController.listMyEnrollments(authentication);
 
-        verify(enrollmentService).listMyEnrollments(student);
+        verify(enrollmentService).listMyEnrollments(studentId);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEqualTo(serviceResponse);
     }

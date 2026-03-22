@@ -8,6 +8,7 @@ import com.testetecnico.portoseguros.exception.BusinessException;
 import com.testetecnico.portoseguros.exception.ResourceNotFoundException;
 import com.testetecnico.portoseguros.repository.CourseRepository;
 import com.testetecnico.portoseguros.repository.EnrollmentRepository;
+import com.testetecnico.portoseguros.repository.StudentRepository;
 import com.testetecnico.portoseguros.service.EnrollmentService;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -24,15 +25,21 @@ public class EnrollmentServiceImpl implements EnrollmentService {
 
     private final EnrollmentRepository enrollmentRepository;
     private final CourseRepository courseRepository;
+    private final StudentRepository studentRepository;
 
-    public EnrollmentServiceImpl(EnrollmentRepository enrollmentRepository, CourseRepository courseRepository) {
+    public EnrollmentServiceImpl(EnrollmentRepository enrollmentRepository, CourseRepository courseRepository,
+                                 StudentRepository studentRepository) {
         this.enrollmentRepository = enrollmentRepository;
         this.courseRepository = courseRepository;
+        this.studentRepository = studentRepository;
     }
 
     @Override
     @Transactional
-    public EnrollmentResponseDto enrollStudent(UUID courseId, Student student) {
+    public EnrollmentResponseDto enroll(UUID studentId, UUID courseId) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+
         long currentEnrollments = enrollmentRepository.countByStudentId(student.getId());
         if (currentEnrollments >= MAX_ENROLLMENTS) {
             throw new BusinessException("Maximum of " + MAX_ENROLLMENTS + " active enrollments reached");
@@ -61,8 +68,8 @@ public class EnrollmentServiceImpl implements EnrollmentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<EnrollmentResponseDto> listMyEnrollments(Student student) {
-        return enrollmentRepository.findByStudentId(student.getId())
+    public List<EnrollmentResponseDto> listMyEnrollments(UUID studentId) {
+        return enrollmentRepository.findByStudentId(studentId)
                 .stream()
                 .map(this::toResponse)
                 .toList();

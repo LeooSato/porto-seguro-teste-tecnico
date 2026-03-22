@@ -22,7 +22,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -62,9 +61,9 @@ class JwtAuthenticationFilterTest {
 
         var auth = SecurityContextHolder.getContext().getAuthentication();
         assertThat(auth).isNotNull();
-        assertThat(auth.getPrincipal()).isEqualTo(student);
+        assertThat(auth.getPrincipal()).isEqualTo(studentId.toString());
         assertThat(auth.getAuthorities()).extracting("authority").containsExactly("ROLE_ADMIN");
-        assertThat(auth.getDetails()).isInstanceOf(WebAuthenticationDetails.class);
+        assertThat(auth.getDetails()).isEqualTo(student);
     }
 
     @Test

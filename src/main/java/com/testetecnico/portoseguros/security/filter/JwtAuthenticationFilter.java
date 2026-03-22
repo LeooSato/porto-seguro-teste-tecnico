@@ -12,16 +12,19 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private static final String BEARER_PREFIX = "Bearer ";
 
@@ -49,9 +52,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     List<SimpleGrantedAuthority> authorities = Collections.singletonList(
                             new SimpleGrantedAuthority("ROLE_" + role));
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            student, null, authorities);
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                            student.getId().toString(), null, authorities);
+                    authentication.setDetails(student);
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+                    log.info("Authenticated user {} with authorities {}", student.getId(), authentication.getAuthorities());
                 }
             }
         } catch (io.jsonwebtoken.JwtException | IllegalArgumentException ex) {

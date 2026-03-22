@@ -3,7 +3,6 @@ package com.testetecnico.portoseguros.service.impl;
 import com.testetecnico.portoseguros.dto.TaskLogRequestDto;
 import com.testetecnico.portoseguros.dto.TaskLogResponseDto;
 import com.testetecnico.portoseguros.entity.Enrollment;
-import com.testetecnico.portoseguros.entity.Student;
 import com.testetecnico.portoseguros.entity.TaskLog;
 import com.testetecnico.portoseguros.exception.BusinessException;
 import com.testetecnico.portoseguros.exception.ResourceNotFoundException;
@@ -31,9 +30,9 @@ public class TaskLogServiceImpl implements TaskLogService {
 
     @Override
     @Transactional
-    public TaskLogResponseDto create(TaskLogRequestDto request, Student student) {
+    public TaskLogResponseDto create(TaskLogRequestDto request, UUID studentId) {
         validateTime(request.timeSpentMinutes());
-        Enrollment enrollment = enrollmentRepository.findByIdAndStudentId(request.enrollmentId(), student.getId())
+        Enrollment enrollment = enrollmentRepository.findByIdAndStudentId(request.enrollmentId(), studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Enrollment not found for student"));
 
         TaskLog log = TaskLog.builder()
@@ -49,12 +48,12 @@ public class TaskLogServiceImpl implements TaskLogService {
 
     @Override
     @Transactional
-    public TaskLogResponseDto update(UUID id, TaskLogRequestDto request, Student student) {
+    public TaskLogResponseDto update(UUID id, TaskLogRequestDto request, UUID studentId) {
         validateTime(request.timeSpentMinutes());
-        TaskLog existing = taskLogRepository.findByIdAndEnrollmentStudentId(id, student.getId())
+        TaskLog existing = taskLogRepository.findByIdAndEnrollmentStudentId(id, studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task log not found for student"));
 
-        Enrollment enrollment = enrollmentRepository.findByIdAndStudentId(request.enrollmentId(), student.getId())
+        Enrollment enrollment = enrollmentRepository.findByIdAndStudentId(request.enrollmentId(), studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Enrollment not found for student"));
 
         existing.setEnrollment(enrollment);
@@ -68,24 +67,24 @@ public class TaskLogServiceImpl implements TaskLogService {
 
     @Override
     @Transactional
-    public void delete(UUID id, Student student) {
-        TaskLog existing = taskLogRepository.findByIdAndEnrollmentStudentId(id, student.getId())
+    public void delete(UUID id, UUID studentId) {
+        TaskLog existing = taskLogRepository.findByIdAndEnrollmentStudentId(id, studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task log not found for student"));
         taskLogRepository.delete(existing);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<TaskLogResponseDto> list(Student student, LocalDate startDate, LocalDate endDate) {
+    public List<TaskLogResponseDto> list(UUID studentId, LocalDate startDate, LocalDate endDate) {
         if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
             throw new BusinessException("endDate must be on or after startDate");
         }
 
         List<TaskLog> logs;
         if (startDate != null && endDate != null) {
-            logs = taskLogRepository.findAllByEnrollmentStudentIdAndDateBetween(student.getId(), startDate, endDate);
+            logs = taskLogRepository.findAllByEnrollmentStudentIdAndDateBetween(studentId, startDate, endDate);
         } else {
-            logs = taskLogRepository.findAllByEnrollmentStudentId(student.getId());
+            logs = taskLogRepository.findAllByEnrollmentStudentId(studentId);
         }
 
         return logs.stream().map(this::toResponse).toList();

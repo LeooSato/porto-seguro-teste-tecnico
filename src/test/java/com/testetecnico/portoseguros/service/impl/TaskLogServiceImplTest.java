@@ -42,10 +42,10 @@ class TaskLogServiceImplTest {
 
     @Test
     void createShouldThrowWhenTimeIsNotInThirtyMinuteIncrements() {
-        Student student = studentWithId(UUID.randomUUID());
+        UUID studentId = UUID.randomUUID();
         TaskLogRequestDto request = request(UUID.randomUUID(), 25);
 
-        assertThatThrownBy(() -> taskLogService.create(request, student))
+        assertThatThrownBy(() -> taskLogService.create(request, studentId))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Time spent must be positive and in 30-minute increments");
 
@@ -56,12 +56,11 @@ class TaskLogServiceImplTest {
     void createShouldThrowWhenEnrollmentIsNotFoundForStudent() {
         UUID studentId = UUID.randomUUID();
         UUID enrollmentId = UUID.randomUUID();
-        Student student = studentWithId(studentId);
         TaskLogRequestDto request = request(enrollmentId, 60);
 
         when(enrollmentRepository.findByIdAndStudentId(enrollmentId, studentId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> taskLogService.create(request, student))
+        assertThatThrownBy(() -> taskLogService.create(request, studentId))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Enrollment not found for student");
     }
@@ -84,7 +83,7 @@ class TaskLogServiceImplTest {
             return log;
         });
 
-        TaskLogResponseDto response = taskLogService.create(request, student);
+        TaskLogResponseDto response = taskLogService.create(request, studentId);
 
         assertThat(response.id()).isEqualTo(logId);
         assertThat(response.enrollmentId()).isEqualTo(enrollmentId);
@@ -98,12 +97,11 @@ class TaskLogServiceImplTest {
         UUID studentId = UUID.randomUUID();
         UUID logId = UUID.randomUUID();
         UUID enrollmentId = UUID.randomUUID();
-        Student student = studentWithId(studentId);
         TaskLogRequestDto request = request(enrollmentId, 60);
 
         when(taskLogRepository.findByIdAndEnrollmentStudentId(logId, studentId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> taskLogService.update(logId, request, student))
+        assertThatThrownBy(() -> taskLogService.update(logId, request, studentId))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Task log not found for student");
     }
@@ -120,7 +118,7 @@ class TaskLogServiceImplTest {
         when(taskLogRepository.findByIdAndEnrollmentStudentId(logId, studentId)).thenReturn(Optional.of(existing));
         when(enrollmentRepository.findByIdAndStudentId(enrollmentId, studentId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> taskLogService.update(logId, request, student))
+        assertThatThrownBy(() -> taskLogService.update(logId, request, studentId))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Enrollment not found for student");
     }
@@ -141,7 +139,7 @@ class TaskLogServiceImplTest {
         when(enrollmentRepository.findByIdAndStudentId(enrollmentId, studentId)).thenReturn(Optional.of(enrollment));
         when(taskLogRepository.save(existing)).thenReturn(existing);
 
-        TaskLogResponseDto response = taskLogService.update(logId, request, student);
+        TaskLogResponseDto response = taskLogService.update(logId, request, studentId);
 
         assertThat(response.id()).isEqualTo(logId);
         assertThat(response.enrollmentId()).isEqualTo(enrollmentId);
@@ -153,12 +151,11 @@ class TaskLogServiceImplTest {
     void deleteShouldRemoveTaskLogWhenFound() {
         UUID studentId = UUID.randomUUID();
         UUID logId = UUID.randomUUID();
-        Student student = studentWithId(studentId);
         TaskLog existing = TaskLog.builder().id(logId).build();
 
         when(taskLogRepository.findByIdAndEnrollmentStudentId(logId, studentId)).thenReturn(Optional.of(existing));
 
-        taskLogService.delete(logId, student);
+        taskLogService.delete(logId, studentId);
 
         verify(taskLogRepository).delete(existing);
     }
@@ -167,22 +164,21 @@ class TaskLogServiceImplTest {
     void deleteShouldThrowWhenTaskLogNotFoundForStudent() {
         UUID studentId = UUID.randomUUID();
         UUID logId = UUID.randomUUID();
-        Student student = studentWithId(studentId);
 
         when(taskLogRepository.findByIdAndEnrollmentStudentId(logId, studentId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> taskLogService.delete(logId, student))
+        assertThatThrownBy(() -> taskLogService.delete(logId, studentId))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Task log not found for student");
     }
 
     @Test
     void listShouldThrowWhenEndDateIsBeforeStartDate() {
-        Student student = studentWithId(UUID.randomUUID());
+        UUID studentId = UUID.randomUUID();
         LocalDate start = LocalDate.of(2026, 2, 1);
         LocalDate end = LocalDate.of(2026, 1, 1);
 
-        assertThatThrownBy(() -> taskLogService.list(student, start, end))
+        assertThatThrownBy(() -> taskLogService.list(studentId, start, end))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("endDate must be on or after startDate");
     }
@@ -201,7 +197,7 @@ class TaskLogServiceImplTest {
         when(taskLogRepository.findAllByEnrollmentStudentIdAndDateBetween(studentId, start, end))
                 .thenReturn(List.of(log));
 
-        List<TaskLogResponseDto> result = taskLogService.list(student, start, end);
+        List<TaskLogResponseDto> result = taskLogService.list(studentId, start, end);
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().id()).isEqualTo(logId);
@@ -220,7 +216,7 @@ class TaskLogServiceImplTest {
 
         when(taskLogRepository.findAllByEnrollmentStudentId(studentId)).thenReturn(List.of(log));
 
-        List<TaskLogResponseDto> result = taskLogService.list(student, null, null);
+        List<TaskLogResponseDto> result = taskLogService.list(studentId, null, null);
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().id()).isEqualTo(logId);

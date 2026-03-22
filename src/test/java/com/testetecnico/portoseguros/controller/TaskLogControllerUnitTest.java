@@ -6,7 +6,6 @@ import static org.mockito.Mockito.when;
 
 import com.testetecnico.portoseguros.dto.TaskLogRequestDto;
 import com.testetecnico.portoseguros.dto.TaskLogResponseDto;
-import com.testetecnico.portoseguros.entity.Student;
 import com.testetecnico.portoseguros.entity.TaskCategory;
 import com.testetecnico.portoseguros.service.TaskLogService;
 import java.time.LocalDate;
@@ -19,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 
 @ExtendWith(MockitoExtension.class)
 class TaskLogControllerUnitTest {
@@ -31,12 +31,14 @@ class TaskLogControllerUnitTest {
 
     @Test
     void createShouldReturnCreated() {
-        Student student = student();
+        UUID studentId = UUID.randomUUID();
         TaskLogRequestDto request = taskRequest();
         TaskLogResponseDto serviceResponse = taskResponse(request.enrollmentId());
-        when(taskLogService.create(request, student)).thenReturn(serviceResponse);
+        Authentication authentication = org.mockito.Mockito.mock(Authentication.class);
+        when(authentication.getName()).thenReturn(studentId.toString());
+        when(taskLogService.create(request, studentId)).thenReturn(serviceResponse);
 
-        ResponseEntity<TaskLogResponseDto> response = taskLogController.create(request, student);
+        ResponseEntity<TaskLogResponseDto> response = taskLogController.create(request, authentication);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(response.getBody()).isEqualTo(serviceResponse);
@@ -44,13 +46,15 @@ class TaskLogControllerUnitTest {
 
     @Test
     void updateShouldReturnOk() {
-        Student student = student();
+        UUID studentId = UUID.randomUUID();
         UUID id = UUID.randomUUID();
         TaskLogRequestDto request = taskRequest();
         TaskLogResponseDto serviceResponse = taskResponse(request.enrollmentId());
-        when(taskLogService.update(id, request, student)).thenReturn(serviceResponse);
+        Authentication authentication = org.mockito.Mockito.mock(Authentication.class);
+        when(authentication.getName()).thenReturn(studentId.toString());
+        when(taskLogService.update(id, request, studentId)).thenReturn(serviceResponse);
 
-        ResponseEntity<TaskLogResponseDto> response = taskLogController.update(id, request, student);
+        ResponseEntity<TaskLogResponseDto> response = taskLogController.update(id, request, authentication);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEqualTo(serviceResponse);
@@ -58,36 +62,36 @@ class TaskLogControllerUnitTest {
 
     @Test
     void deleteShouldReturnNoContent() {
-        Student student = student();
+        UUID studentId = UUID.randomUUID();
         UUID id = UUID.randomUUID();
 
-        ResponseEntity<Void> response = taskLogController.delete(id, student);
+        Authentication authentication = org.mockito.Mockito.mock(Authentication.class);
+        when(authentication.getName()).thenReturn(studentId.toString());
 
-        verify(taskLogService).delete(id, student);
+        ResponseEntity<Void> response = taskLogController.delete(id, authentication);
+
+        verify(taskLogService).delete(id, studentId);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
     }
 
     @Test
     void listShouldReturnOkWithServiceResult() {
-        Student student = student();
+        UUID studentId = UUID.randomUUID();
         LocalDate start = LocalDate.of(2026, 1, 1);
         LocalDate end = LocalDate.of(2026, 1, 31);
         UUID enrollmentId = UUID.randomUUID();
         List<TaskLogResponseDto> serviceResponse = List.of(taskResponse(enrollmentId));
-        when(taskLogService.list(student, start, end)).thenReturn(serviceResponse);
+        Authentication authentication = org.mockito.Mockito.mock(Authentication.class);
+        when(authentication.getName()).thenReturn(studentId.toString());
+        when(taskLogService.list(studentId, start, end)).thenReturn(serviceResponse);
 
-        ResponseEntity<List<TaskLogResponseDto>> response = taskLogController.list(student, start, end);
+        ResponseEntity<List<TaskLogResponseDto>> response = taskLogController.list(authentication, start, end);
 
-        verify(taskLogService).list(student, start, end);
+        verify(taskLogService).list(studentId, start, end);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEqualTo(serviceResponse);
     }
 
-    private Student student() {
-        Student student = new Student();
-        student.setId(UUID.randomUUID());
-        return student;
-    }
 
     private TaskLogRequestDto taskRequest() {
         return new TaskLogRequestDto(

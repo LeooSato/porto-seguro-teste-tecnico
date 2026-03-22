@@ -15,6 +15,7 @@ import com.testetecnico.portoseguros.exception.BusinessException;
 import com.testetecnico.portoseguros.exception.ResourceNotFoundException;
 import com.testetecnico.portoseguros.repository.CourseRepository;
 import com.testetecnico.portoseguros.repository.EnrollmentRepository;
+import com.testetecnico.portoseguros.repository.StudentRepository;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -34,16 +35,21 @@ class EnrollmentServiceImplTest {
     @Mock
     private CourseRepository courseRepository;
 
+    @Mock
+    private StudentRepository studentRepository;
+
     @InjectMocks
     private EnrollmentServiceImpl enrollmentService;
 
     @Test
     void enrollStudentShouldThrowWhenStudentReachedMaxEnrollments() {
-        Student student = studentWithId(UUID.randomUUID());
+        UUID studentId = UUID.randomUUID();
+        Student student = studentWithId(studentId);
         UUID courseId = UUID.randomUUID();
-        when(enrollmentRepository.countByStudentId(student.getId())).thenReturn(3L);
+        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(enrollmentRepository.countByStudentId(studentId)).thenReturn(3L);
 
-        assertThatThrownBy(() -> enrollmentService.enrollStudent(courseId, student))
+        assertThatThrownBy(() -> enrollmentService.enroll(studentId, courseId))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Maximum of 3 active enrollments reached");
 
@@ -52,12 +58,14 @@ class EnrollmentServiceImplTest {
 
     @Test
     void enrollStudentShouldThrowWhenAlreadyEnrolledInCourse() {
-        Student student = studentWithId(UUID.randomUUID());
+        UUID studentId = UUID.randomUUID();
+        Student student = studentWithId(studentId);
         UUID courseId = UUID.randomUUID();
-        when(enrollmentRepository.countByStudentId(student.getId())).thenReturn(1L);
-        when(enrollmentRepository.existsByStudentIdAndCourseId(student.getId(), courseId)).thenReturn(true);
+        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(enrollmentRepository.countByStudentId(studentId)).thenReturn(1L);
+        when(enrollmentRepository.existsByStudentIdAndCourseId(studentId, courseId)).thenReturn(true);
 
-        assertThatThrownBy(() -> enrollmentService.enrollStudent(courseId, student))
+        assertThatThrownBy(() -> enrollmentService.enroll(studentId, courseId))
                 .isInstanceOf(BusinessException.class)
                 .hasMessage("Student already enrolled in this course");
 
@@ -66,27 +74,31 @@ class EnrollmentServiceImplTest {
 
     @Test
     void enrollStudentShouldThrowWhenCourseDoesNotExist() {
-        Student student = studentWithId(UUID.randomUUID());
+        UUID studentId = UUID.randomUUID();
+        Student student = studentWithId(studentId);
         UUID courseId = UUID.randomUUID();
 
-        when(enrollmentRepository.countByStudentId(student.getId())).thenReturn(1L);
-        when(enrollmentRepository.existsByStudentIdAndCourseId(student.getId(), courseId)).thenReturn(false);
+        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(enrollmentRepository.countByStudentId(studentId)).thenReturn(1L);
+        when(enrollmentRepository.existsByStudentIdAndCourseId(studentId, courseId)).thenReturn(false);
         when(courseRepository.findById(courseId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> enrollmentService.enrollStudent(courseId, student))
+        assertThatThrownBy(() -> enrollmentService.enroll(studentId, courseId))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Course not found");
     }
 
     @Test
     void enrollStudentShouldCreateEnrollmentAndReturnResponse() {
+        UUID studentId = UUID.randomUUID();
         UUID courseId = UUID.randomUUID();
         UUID enrollmentId = UUID.randomUUID();
-        Student student = studentWithId(UUID.randomUUID());
+        Student student = studentWithId(studentId);
         Course course = Course.builder().id(courseId).name("Spring Boot").description("API").build();
 
-        when(enrollmentRepository.countByStudentId(student.getId())).thenReturn(0L);
-        when(enrollmentRepository.existsByStudentIdAndCourseId(student.getId(), courseId)).thenReturn(false);
+        when(studentRepository.findById(studentId)).thenReturn(Optional.of(student));
+        when(enrollmentRepository.countByStudentId(studentId)).thenReturn(0L);
+        when(enrollmentRepository.existsByStudentIdAndCourseId(studentId, courseId)).thenReturn(false);
         when(courseRepository.findById(courseId)).thenReturn(Optional.of(course));
         when(enrollmentRepository.save(any(Enrollment.class))).thenAnswer(invocation -> {
             Enrollment enrollment = invocation.getArgument(0);
@@ -94,7 +106,7 @@ class EnrollmentServiceImplTest {
             return enrollment;
         });
 
-        EnrollmentResponseDto response = enrollmentService.enrollStudent(courseId, student);
+        EnrollmentResponseDto response = enrollmentService.enroll(studentId, courseId);
 
         assertThat(response.id()).isEqualTo(enrollmentId);
         assertThat(response.courseId()).isEqualTo(courseId);
@@ -104,7 +116,8 @@ class EnrollmentServiceImplTest {
 
     @Test
     void listMyEnrollmentsShouldMapEnrollments() {
-        Student student = studentWithId(UUID.randomUUID());
+        UUID studentId = UUID.randomUUID();
+        Student student = studentWithId(studentId);
         UUID enrollmentId = UUID.randomUUID();
         UUID courseId = UUID.randomUUID();
         Enrollment enrollment = Enrollment.builder()
@@ -114,9 +127,9 @@ class EnrollmentServiceImplTest {
                 .enrollmentDate(LocalDate.of(2026, 1, 1))
                 .expectedCompletionDate(LocalDate.of(2026, 7, 1))
                 .build();
-        when(enrollmentRepository.findByStudentId(student.getId())).thenReturn(List.of(enrollment));
+        when(enrollmentRepository.findByStudentId(studentId)).thenReturn(List.of(enrollment));
 
-        List<EnrollmentResponseDto> result = enrollmentService.listMyEnrollments(student);
+        List<EnrollmentResponseDto> result = enrollmentService.listMyEnrollments(studentId);
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().id()).isEqualTo(enrollmentId);
