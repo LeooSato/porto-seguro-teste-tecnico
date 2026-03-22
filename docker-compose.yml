@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: portoseguros-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: portoseguros
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d portoseguros"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  app:
+    build: .
+    container_name: portoseguros-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/portoseguros
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      JWT_SECRET: local-secret
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+
