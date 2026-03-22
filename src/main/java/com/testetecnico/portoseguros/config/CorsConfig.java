@@ -14,7 +14,7 @@ public class CorsConfig {
 
         config.setAllowCredentials(true);
         config.addAllowedOrigin("http://localhost:4200");
-        config.addAllowedOrigin("https://seu-front-vercel.vercel.app"); // depois ajusta
+        config.addAllowedOrigin("https://front-porto-seguro-teste-tecnico.vercel.app");
 
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
